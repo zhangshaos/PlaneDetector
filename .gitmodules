@@ -1,0 +1,6 @@
+[submodule "vendor/ELSED"]
+	path = vendor/ELSED
+	url = https://github.com/zhangshaos/ELSED.git
+[submodule "vendor/ED_Lib"]
+	path = vendor/ED_Lib
+	url = https://github.com/zhangshaos/ED_Lib.git
