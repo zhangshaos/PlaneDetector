@@ -1,0 +1,10 @@
+.vs/
+.idea/
+.vscode/
+
+cmake-build-*/
+
+bin/
+lib/
+log/
+dbg/
