@@ -31,7 +31,7 @@ void testSegmentByLines() {
   clustersMap.at<int32_t>(0, 1) = 3;
   clustersMap.at<int32_t>(0, 2) = 3;
   LOG(INFO) << '\n' << clustersMap << '\n';
-  zxm::DrawClusters("../dbg/testSegmentByLines0.png", clustersMap);
+  zxm::tool::DrawClusters("../dbg/testSegmentByLines0.png", clustersMap);
   cv::Mat lineMap(5, 5, CV_8U, cv::Scalar_<uint8_t>(0));
   lineMap.at<uint8_t>(0, 0) = -1;
   lineMap.at<uint8_t>(1, 0) = -1;
@@ -46,7 +46,7 @@ void testSegmentByLines() {
   LOG(INFO) << '\n' << lineMap << '\n';
   int N = zxm::SegmentByLines(clustersMap, lineMap);
   LOG(INFO) << "Number of Classes: " << N << '\n';
-  zxm::DrawClusters("../dbg/testSegmentByLines1.png", clustersMap);
+  zxm::tool::DrawClusters("../dbg/testSegmentByLines1.png", clustersMap);
 }
 
 
@@ -54,18 +54,18 @@ void testSegmentByLines() {
 void testDetectPlanes() {
   //1,18,55,99
   cv::Mat colorImg =
-    zxm::CV_Imread1920x1440(R"(..\vendor\ELSED\images\1_scene.png)", cv::IMREAD_COLOR, cv::INTER_NEAREST);
+    zxm::tool::CV_Imread1920x1440(R"(..\vendor\ELSED\images\1_scene.png)", cv::IMREAD_COLOR, cv::INTER_NEAREST);
   cv::Mat mask =
     cvDNN::blobFromNPY(R"(E:\VS_Projects\MonoPlanner\example\data\1_mask.npy)", CV_8U);
   cv::Mat normalMap =
     cvDNN::blobFromNPY(R"(E:\VS_Projects\MonoPlanner\example\data\1_normal.npy)", CV_32F);
-  normalMap = zxm::CV_Convert32FTo32FC3(normalMap, mask);
-  zxm::DrawNormals("../dbg/inNormals.png", normalMap);
+  normalMap = zxm::tool::CV_Convert32FTo32FC3(normalMap, mask);
+  zxm::tool::DrawNormals("../dbg/inNormals.png", normalMap);
   //
   cv::Mat planesMat = zxm::DetectPlanes(colorImg, normalMap, true);
   //
-  LOG(INFO) << "nClass = " << zxm::cvMax<int32_t>(planesMat) + 1 << '\n';
-  zxm::DrawClusters("../dbg/outPlanesMap.png", planesMat);
+  LOG(INFO) << "nClass = " << zxm::tool::cvMax<int32_t>(planesMat) + 1 << '\n';
+  zxm::tool::DrawClusters("../dbg/outPlanesMap.png", planesMat);
 }
 
 

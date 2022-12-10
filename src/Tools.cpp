@@ -11,7 +11,7 @@
 #include "Tools.h"
 
 
-cv::Mat zxm::CV_Convert32FTo32FC3(const cv::Mat &m, const cv::Mat &mask) {
+cv::Mat zxm::tool::CV_Convert32FTo32FC3(const cv::Mat &m, const cv::Mat &mask) {
   CV_Assert(m.type() == CV_32F);
   CV_Assert(mask.type() == CV_8U);
   cv::Mat o(m.size[0], m.size[1], CV_32FC3);
@@ -30,7 +30,7 @@ cv::Mat zxm::CV_Convert32FTo32FC3(const cv::Mat &m, const cv::Mat &mask) {
 }
 
 
-cv::Mat zxm::CV_Resize256x192(const cv::Mat &m, int interpolation) {
+cv::Mat zxm::tool::CV_Resize256x192(const cv::Mat &m, int interpolation) {
   CV_Assert(!m.empty());
   cv::Mat o;
   cv::resize(m, o, cv::Size(480, 360), 0, 0, interpolation);
@@ -39,7 +39,7 @@ cv::Mat zxm::CV_Resize256x192(const cv::Mat &m, int interpolation) {
 }
 
 
-cv::Mat zxm::CV_Imread1920x1440(const std::string &file, int imreadFlag, int interpolation) {
+cv::Mat zxm::tool::CV_Imread1920x1440(const std::string &file, int imreadFlag, int interpolation) {
   cv::Mat img = cv::imread(file, imreadFlag);
   CV_Assert(!img.empty());
   cv::resize(img, img, cv::Size(1440, 1080), 0, 0, interpolation);
@@ -48,7 +48,7 @@ cv::Mat zxm::CV_Imread1920x1440(const std::string &file, int imreadFlag, int int
 }
 
 
-void zxm::SampleAColor(double *color, double x, double min, double max) {
+void zxm::tool::SampleAColor(double *color, double x, double min, double max) {
   /*
    * Red = 0
    * Green = 1
@@ -91,7 +91,7 @@ void zxm::SampleAColor(double *color, double x, double min, double max) {
 }
 
 
-void zxm::CV_ImWriteWithPath(const std::string &path, const cv::Mat &im) {
+void zxm::tool::CV_ImWriteWithPath(const std::string &path, const cv::Mat &im) {
   namespace fs = std::filesystem;
   fs::path file(path);
   auto parentPath = file.parent_path();
@@ -101,7 +101,7 @@ void zxm::CV_ImWriteWithPath(const std::string &path, const cv::Mat &im) {
 }
 
 
-cv::Mat zxm::DrawClusters(const std::string &savePath,
+cv::Mat zxm::tool::DrawClusters(const std::string &savePath,
                           const cv::Mat &clustersMap) {
   CV_Assert(clustersMap.type() == CV_32S);
   const int Rows = clustersMap.rows, Cols = clustersMap.cols;
@@ -129,7 +129,7 @@ cv::Mat zxm::DrawClusters(const std::string &savePath,
 }
 
 
-cv::Mat zxm::DrawNormals(const std::string &savePath, const cv::Mat &normals) {
+cv::Mat zxm::tool::DrawNormals(const std::string &savePath, const cv::Mat &normals) {
   CV_Assert(normals.type() == CV_32FC3);
   const int Rows = normals.size[0], Cols = normals.size[1];
   cv::Mat _normals = normals.clone();
@@ -150,7 +150,7 @@ cv::Mat zxm::DrawNormals(const std::string &savePath, const cv::Mat &normals) {
   return colorMap;
 }
 
-void zxm::CheckMathError() {
+void zxm::tool::CheckMathError() {
   std::ostringstream oss;
   if constexpr (math_errhandling | MATH_ERREXCEPT) {
     int err = std::fetestexcept(FE_ALL_EXCEPT);

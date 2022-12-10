@@ -16,7 +16,8 @@
 
 namespace zxm
 {
-
+namespace tool
+{
 
 //******************* 基本数学工具 ******************//
 
@@ -163,7 +164,7 @@ cv::Mat DrawClusters(const std::string &savePath, const cv::Mat &clustersMap);
 
 cv::Mat DrawNormals(const std::string &savePath, const cv::Mat &normals);
 
-
-}
+}//namespace tool
+}//namespace zxm
 
 #endif //ELSED_TOOLS_H

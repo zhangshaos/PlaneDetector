@@ -21,10 +21,10 @@ cv::Mat zxm::DetectPlanes(const cv::Mat &colorImg,
   zxm::ClusteringByNormal(clusterMap, normalMap, true);
   cv::Mat clusterColorMap;
   if (enableDebug)
-    clusterColorMap = DrawClusters("../dbg/NormalClusters.png", clusterMap);
+    clusterColorMap = zxm::tool::DrawClusters("../dbg/NormalClusters.png", clusterMap);
   auto lineMap = zxm::CreateStructureLinesMap(colorImg, normalMap);
   if (enableDebug)
-    DrawClusters("../dbg/Lines.png", lineMap);
+    zxm::tool::DrawClusters("../dbg/Lines.png", lineMap);
   if (enableDebug) {
     const int Rows = clusterColorMap.size[0], Cols = clusterColorMap.size[1];
     CV_Assert(Rows == lineMap.size[0] && Cols == lineMap.size[1]);
@@ -32,7 +32,7 @@ cv::Mat zxm::DetectPlanes(const cv::Mat &colorImg,
       for (int j = 0; j < Cols; ++j)
         if (lineMap.at<int32_t>(i, j) > 0)
           clusterColorMap.at<cv::Vec3b>(i, j) = cv::Vec3b(0, 0, 0);
-    CV_ImWriteWithPath("../dbg/BlendNormalClustersAndLines.png", clusterColorMap);
+    zxm::tool::CV_ImWriteWithPath("../dbg/BlendNormalClustersAndLines.png", clusterColorMap);
   }
   zxm::SegmentByLines(clusterMap, lineMap, enableDebug);
   return clusterMap;
@@ -50,13 +50,13 @@ int zxm::ClusteringByNormal(cv::Mat &clusterMap,
     return 0 <= y && y < Rows && 0 <= x && x < Cols;
   };
   auto isContinuedAngle = [](const cv::Vec3f &v0, const cv::Vec3f &v1) -> bool {
-    return acos(clamp(v0.dot(v1), -1.f, 1.f)) <= (TH_CONTINUED_ANGLE * CV_PI / 180);
+    return acos(zxm::tool::clamp(v0.dot(v1), -1.f, 1.f)) <= (TH_CONTINUED_ANGLE * CV_PI / 180);
   };
   auto isDiscreted = [](const cv::Vec3f &v0, const cv::Vec3f &v1) -> bool {
-    return acos(clamp(v0.dot(v1), -1.f, 1.f)) >= (2 * TH_CONTINUED_ANGLE * CV_PI / 180);
+    return acos(zxm::tool::clamp(v0.dot(v1), -1.f, 1.f)) >= (2 * TH_CONTINUED_ANGLE * CV_PI / 180);
   };
   // first pass
-  ClassUnion mergeCls;
+  zxm::tool::ClassUnion mergeCls;
   cv::Mat resultCls(Rows, Cols, CV_32S, -1);
   int nextCls = 0;
   for (int i = 0; i < Rows; ++i) {
@@ -86,7 +86,7 @@ int zxm::ClusteringByNormal(cv::Mat &clusterMap,
                          isContinuedAngle(v1, v3)) ||//保证圆润的角依旧可以区分
                         (isContinuedAngle(v1, v2) &&
                          isDiscreted(v2, v3));//找补一些邻近的正面边缘的像素
-          zxm::CheckMathError();
+          zxm::tool::CheckMathError();
           if (isContinued) {
             int32_t C = resultCls.at<int32_t>(targetY, targetX);
             if (C < 0)
@@ -117,7 +117,7 @@ int zxm::ClusteringByNormal(cv::Mat &clusterMap,
   }
 
   if (enableDebug)
-    zxm::DrawClusters("../dbg/RawNormalClusters.png", resultCls);
+    zxm::tool::DrawClusters("../dbg/RawNormalClusters.png", resultCls);
 
   std::vector<uint32_t> shrinkClass;
   int nCls = (int) mergeCls.shrink(&shrinkClass);
@@ -166,7 +166,7 @@ void TestRaster() {
   for (const auto v: vs) {
     result.at<uint8_t>(v.y, v.x) = 0xff;
   }
-  zxm::CV_ImWriteWithPath("../dbg/raster.png", result);
+  zxm::tool::CV_ImWriteWithPath("../dbg/raster.png", result);
 }
 
 
@@ -199,8 +199,8 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
     const auto
       &v0 = normalMap.at<cv::Vec3f>(iy0, ix0),
       &v1 = normalMap.at<cv::Vec3f>(iy1, ix1);
-    const float angle = acos(clamp(v0.dot(v1), -1.f, 1.f));
-    zxm::CheckMathError();
+    const float angle = acos(zxm::tool::clamp(v0.dot(v1), -1.f, 1.f));
+    zxm::tool::CheckMathError();
     return angle >= float(TH_DIFF_SIDE_ANGLE * CV_PI / 180);
   };
   //绘制边缘热图result
@@ -216,7 +216,7 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
     const float
       dy = (deltaY / sqrt(deltaY * deltaY + deltaX * deltaX)) * GAP_HALF_DIFF_SIDE,
       dx = (deltaX / sqrt(deltaY * deltaY + deltaX * deltaX)) * GAP_HALF_DIFF_SIDE;
-    zxm::CheckMathError();
+    zxm::tool::CheckMathError();
     const float
       y0 = -dx, x0 = dy,
       y1 = dx, x1 = -dy;//(dy,dx) 分别逆时针、顺时针转动90°
@@ -256,7 +256,7 @@ int zxm::SegmentByLines(cv::Mat &clusterMap,
 
   const int Rows = clusterMap.size[0], Cols = clusterMap.size[1];
   // first pass
-  ClassUnion mergeCls;
+  zxm::tool::ClassUnion mergeCls;
   cv::Mat resultCls(Rows, Cols, CV_32S, -1);
   int nextCls = 0;
   for (int i = 0; i < Rows; ++i) {
@@ -359,7 +359,7 @@ int zxm::SegmentByLines(cv::Mat &clusterMap,
   }
 
   if (enableDebug)
-    zxm::DrawClusters("../dbg/RawLineClusters.png", resultCls);
+    zxm::tool::DrawClusters("../dbg/RawLineClusters.png", resultCls);
 
   std::vector<uint32_t> shrinkClass;
   int nCls = (int) mergeCls.shrink(&shrinkClass);

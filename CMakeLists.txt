@@ -31,5 +31,11 @@ target_link_libraries(PlaneDetector
         EDLib
         ELSED)
 
+#################################################
+#                Build Examples                 #
+#################################################
+set(BUILD_EXAMPLE FALSE)
+if(BUILD_EXAMPLE)
 add_executable(DetectPlaneTest example/Test.cpp)
 target_link_libraries(DetectPlaneTest PRIVATE PlaneDetector)
+endif()
