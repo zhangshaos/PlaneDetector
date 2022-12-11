@@ -18,11 +18,11 @@ cv::Mat zxm::DetectPlanes(const cv::Mat &colorImg,
                           const cv::Mat &normalMap,
                           bool enableDebug) {
   cv::Mat clusterMap;
-  zxm::ClusteringByNormal(clusterMap, normalMap, true);
+  zxm::ClusteringByNormal(clusterMap, normalMap, enableDebug);
   cv::Mat clusterColorMap;
   if (enableDebug)
     clusterColorMap = zxm::tool::DrawClusters("../dbg/NormalClusters.png", clusterMap);
-  auto lineMap = zxm::CreateStructureLinesMap(colorImg, normalMap);
+  auto lineMap = zxm::CreateStructureLinesMap(colorImg, normalMap, enableDebug);
   if (enableDebug)
     zxm::tool::DrawClusters("../dbg/Lines.png", lineMap);
   if (enableDebug) {
@@ -171,7 +171,8 @@ void TestRaster() {
 
 
 cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
-                                     const cv::Mat &normalMap) {
+                                     const cv::Mat &normalMap,
+                                     bool enableDebug) {
   CV_Assert(colorImg.type() == CV_8UC3);
   CV_Assert(normalMap.type() == CV_32FC3);
   CV_Assert(colorImg.size[0] >= normalMap.size[0]);
@@ -203,6 +204,10 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
     zxm::tool::CheckMathError();
     return angle >= float(TH_DIFF_SIDE_ANGLE * CV_PI / 180);
   };
+  //可视化原始的检测结果lines
+  cv::Mat edgeResult = enableDebug ?
+                       cv::Mat(Rows, Cols, CV_8U, cv::Scalar_<uint8_t>(0)) :
+                       cv::Mat{};
   //绘制边缘热图result
   cv::Mat result(Rows, Cols, CV_32S, cv::Scalar_<int32_t>(-1));
   int32_t startID = 1;
@@ -241,7 +246,13 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
         result.at<int32_t>(px.y, px.x) = startID;
       ++startID;
     }
+    //
+    if (enableDebug)
+      for (const auto &px : l)
+        edgeResult.at<uint8_t>(px.y, px.x) = 0xff;
   }
+  if (enableDebug)
+    zxm::tool::CV_ImWriteWithPath("../dbg/RawLinesEdge.png", edgeResult);
   return result;
 }
 

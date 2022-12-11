@@ -50,7 +50,8 @@ int ClusteringByNormal(cv::Mat &clusterMap,
 * @return cv:Mat CV_32S 结构线遮罩：>0表示线段，不同的数字表示不同的线段ID
 */
 cv::Mat CreateStructureLinesMap(const cv::Mat &colorImg,
-                                const cv::Mat &normalMap);
+                                const cv::Mat &normalMap,
+                                bool enableDebug=false);
 
 
 /**
