@@ -45,12 +45,14 @@ int ClusteringByNormal(cv::Mat &clusterMap,
 * 运行ELSED算法检测RGB图片colorMap中的所有线段。
 * @note 1. 此函数会筛除掉那些纹理线：假设纹理线上所有像素两侧法向量一致完全一致。
 * @note 2. colorImg的尺寸可以大于normalMap。
-* @param[in] colorImg CV_8UC3
+* @param[in] colorImg  CV_8UC3
 * @param[in] normalMap CV_32FC3 归一化的法向量图（不含零向量）
+* @param[in] extend    是否扩张检测到的结构线
 * @return cv:Mat CV_32S 结构线遮罩：>0表示线段，不同的数字表示不同的线段ID
 */
 cv::Mat CreateStructureLinesMap(const cv::Mat &colorImg,
                                 const cv::Mat &normalMap,
+                                bool extend=false,
                                 bool enableDebug=false);
 
 

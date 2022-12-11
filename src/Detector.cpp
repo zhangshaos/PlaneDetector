@@ -22,9 +22,9 @@ cv::Mat zxm::DetectPlanes(const cv::Mat &colorImg,
   cv::Mat clusterColorMap;
   if (enableDebug)
     clusterColorMap = zxm::tool::DrawClusters("../dbg/NormalClusters.png", clusterMap);
-  auto lineMap = zxm::CreateStructureLinesMap(colorImg, normalMap, enableDebug);
+  auto lineMap = zxm::CreateStructureLinesMap(colorImg, normalMap, true, enableDebug);
   if (enableDebug)
-    zxm::tool::DrawClusters("../dbg/Lines.png", lineMap);
+    zxm::tool::DrawClusters("../dbg/LinesMap.png", lineMap);
   if (enableDebug) {
     const int Rows = clusterColorMap.size[0], Cols = clusterColorMap.size[1];
     CV_Assert(Rows == lineMap.size[0] && Cols == lineMap.size[1]);
@@ -117,7 +117,7 @@ int zxm::ClusteringByNormal(cv::Mat &clusterMap,
   }
 
   if (enableDebug)
-    zxm::tool::DrawClusters("../dbg/RawNormalClusters.png", resultCls);
+    zxm::tool::DrawClusters("../dbg/NormalClustersBeforeMerge.png", resultCls);
 
   std::vector<uint32_t> shrinkClass;
   int nCls = (int) mergeCls.shrink(&shrinkClass);
@@ -172,6 +172,7 @@ void TestRaster() {
 
 cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
                                      const cv::Mat &normalMap,
+                                     bool extend,
                                      bool enableDebug) {
   CV_Assert(colorImg.type() == CV_8UC3);
   CV_Assert(normalMap.type() == CV_32FC3);
@@ -186,6 +187,10 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
   zxm::ELSEDWrapper elsed;
   lines = elsed.detect(colorImg);
 #endif
+  //排序，保证先处理短线段，再处理长线段
+  std::sort(lines.begin(), lines.end(), [](const std::vector<cv::Point2i> &l,
+                                           const std::vector<cv::Point2i> &r)
+                                           { return l.size()<r.size(); });
   //线段检测结果放缩到normalMap大小
   int Rows = colorImg.size[0], Cols = colorImg.size[1];
   float scaleY = 1.f, scaleX = 1.f;
@@ -211,7 +216,9 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
   //绘制边缘热图result
   cv::Mat result(Rows, Cols, CV_32S, cv::Scalar_<int32_t>(-1));
   int32_t startID = 1;
-  for (auto &l : lines) {
+  std::vector<int32_t> linesResultID(lines.size(), -1);//记录每条线段在result中的ID
+  for (size_t i=0,iEnd=lines.size(); i<iEnd; ++i) {
+    auto &l = lines[i];
     if (l.size() < 2)
       continue;
     //计算每个像素应该向两侧偏移的距离(y0,x0)和(y1,x1)
@@ -244,6 +251,7 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
       //如果边缘e上有足够多的像素左右不一致，则表明e是一条结构线而不是纹理线
       for (const auto &px : l)
         result.at<int32_t>(px.y, px.x) = startID;
+      linesResultID[i] = startID;
       ++startID;
     }
     //
@@ -251,8 +259,88 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
       for (const auto &px : l)
         edgeResult.at<uint8_t>(px.y, px.x) = 0xff;
   }
-  if (enableDebug)
-    zxm::tool::CV_ImWriteWithPath("../dbg/RawLinesEdge.png", edgeResult);
+  if (enableDebug) {
+    zxm::tool::CV_ImWriteWithPath("../dbg/RawEdges.png", edgeResult);
+    zxm::tool::DrawClusters("../dbg/LinesMapBeforeExtend.png", result);
+  }
+  if (!extend)
+    return result;
+  //
+  auto isValid = [&Rows, &Cols](const cv::Point2i &px) -> bool {
+    return 0 <= px.y && px.y < Rows && 0 <= px.x && px.x < Cols;
+  };
+  auto getLineID = [&result](const cv::Point2i &px) -> int32_t {
+    return result.at<int32_t>(px.y, px.x);
+  };
+  //尝试扩张result中的线段
+  for (size_t i=0,iEnd=lines.size(); i<iEnd; ++i) {
+    if (linesResultID[i] < 0)
+      continue;
+    const auto &l = lines[i];
+    const auto &startPx = l.front(), &endPx = l.back();
+    //LOG_ASSERT(linesResultID[i]==getLineID(startPx));
+    //LOG_ASSERT(linesResultID[i]==getLineID(endPx));//result中的线段可能重叠
+    //每条线段向左右扩张，最大不超过图像边缘or长度超过l的一半，
+    //如果在扩张过程中，触碰到其他线段，则停止扩张；
+    //否则，扩张失败，丢弃扩张结果。
+    float
+    deltaY = float(endPx.y - startPx.y) * 0.5f,
+    deltaX = float(endPx.x - startPx.x) * 0.5f;
+    if (deltaY < 0.f)
+      deltaY -= 1.f;
+    else if (deltaY > 0.)
+      deltaY += 1.f;
+    if (deltaX < 0.f)
+      deltaX -= 1.f;
+    else if (deltaX > 0.)
+      deltaX += 1.f;
+    cv::Point2i startStartPx(int(startPx.x + 0.5f - deltaX),
+                             int(startPx.y + 0.5f - deltaY));
+    cv::Point2i endEndPx(int(endPx.x + 0.5f + deltaX),
+                         int(endPx.y + 0.5f + deltaY));
+    //从起点扩张
+    do {
+      auto exLine1 = zxm::raster(startPx.y, startPx.x, startStartPx.y, startStartPx.x);
+      int endIdx = 0;
+      bool hit = false;
+      for (const auto &px: exLine1) {
+        if (!isValid(px))
+          break;
+        if (getLineID(px) >= 0 && getLineID(px) != linesResultID[i]) {
+          hit = true;
+          break;
+        }
+        ++endIdx;
+      }
+      if (!hit)
+        break;
+      for (size_t j = 0; j < endIdx; ++j) {
+        int iy = exLine1[j].y, ix = exLine1[j].x;
+        result.at<int32_t>(iy, ix) = linesResultID[i];
+      }
+    } while (0);
+    //从终点扩张
+    do {
+      auto exLine2 = zxm::raster(endPx.y, endPx.x, endEndPx.y, endEndPx.x);
+      int endIdx = 0;
+      bool hit = false;
+      for (const auto &px: exLine2) {
+        if (!isValid(px))
+          break;
+        if (getLineID(px) >= 0 && getLineID(px) != linesResultID[i]) {
+          hit = true;
+          break;
+        }
+        ++endIdx;
+      }
+      if (!hit)
+        break;
+      for (size_t j = 0; j < endIdx; ++j) {
+        int iy = exLine2[j].y, ix = exLine2[j].x;
+        result.at<int32_t>(iy, ix) = linesResultID[i];
+      }
+    } while (0);
+  }
   return result;
 }
 
@@ -370,7 +458,7 @@ int zxm::SegmentByLines(cv::Mat &clusterMap,
   }
 
   if (enableDebug)
-    zxm::tool::DrawClusters("../dbg/RawLineClusters.png", resultCls);
+    zxm::tool::DrawClusters("../dbg/ClustersBeforeMerge.png", resultCls);
 
   std::vector<uint32_t> shrinkClass;
   int nCls = (int) mergeCls.shrink(&shrinkClass);

@@ -93,10 +93,12 @@ zxm::raster_core(int iy0, int ix0, int iy1, int ix1) {
 std::vector<cv::Point>
 zxm::raster(int iy0, int ix0, int iy1, int ix1) {
   using namespace std;
+  bool inverse = false;
   if (ix0 > ix1) {
     //保证(ix0,iy0)是在x-y坐标系更靠左侧
     swap(ix0, ix1);
     swap(iy0, iy1);
+    inverse = true;
   }
   std::vector<cv::Point> result;
   if (iy1 == iy0) {
@@ -105,8 +107,10 @@ zxm::raster(int iy0, int ix0, int iy1, int ix1) {
       result.emplace_back(i, iy0);
   } else if (ix1 == ix0) {
     //纵线
-    if (iy0 > iy1)
+    if (iy0 > iy1) {
       swap(iy0, iy1);//保证iy0在底端
+      inverse = true;
+    }
     for (int i = iy0; i <= iy1; ++i)
       result.emplace_back(ix0, i);
   } else {
@@ -154,6 +158,10 @@ zxm::raster(int iy0, int ix0, int iy1, int ix1) {
       } else
         throw std::logic_error("zxm::raster() Impossible!");
     }
+  }
+  if (inverse) {
+    std::vector<cv::Point> invResult(result.rbegin(), result.rend());
+    result.swap(invResult);
   }
   return result;
 }
