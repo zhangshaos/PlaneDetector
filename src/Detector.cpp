@@ -235,6 +235,8 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
     //检测边e两侧的法向量是否一致
     size_t nDiffSide = 0;
     for (auto &px : l) {
+      LOG_ASSERT(0 <= px.y && px.y < colorImg.size[0] &&
+                 0 <= px.x && px.x < colorImg.size[1]);
       //线段像素放缩到得到指定大小
       px.y = int((px.y + 0.5f) * scaleY);
       px.x = int((px.x + 0.5f) * scaleX);

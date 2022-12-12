@@ -5,7 +5,7 @@ add_subdirectory(vendor/ED_Lib)
 add_subdirectory(vendor/ELSED)
 
 # 使用两个线段检测库
-#add_compile_definitions(USE_EDLib)
+#add_compile_definitions(USE_EDLib)#ELSED代码质量很差！
 add_compile_definitions(USE_ELSED)#实际测试，ELSED稍微好一丢丢
 if (MSVC)
     add_compile_options(/MP /utf-8 /bigobj)
