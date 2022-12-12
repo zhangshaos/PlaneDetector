@@ -54,11 +54,11 @@ void testSegmentByLines() {
 void testDetectPlanes() {
   //1,18,55,99
   cv::Mat colorImg =
-    zxm::tool::CV_Imread1920x1440(R"(..\vendor\ELSED\images\99_scene.png)", cv::IMREAD_COLOR, cv::INTER_NEAREST);
+    zxm::tool::CV_Imread1920x1440(R"(..\vendor\ELSED\images\55_scene.png)", cv::IMREAD_COLOR, cv::INTER_NEAREST);
   cv::Mat mask =
-    cvDNN::blobFromNPY(R"(E:\VS_Projects\MonoPlanner\example\data\99_mask.npy)", CV_8U);
+    cvDNN::blobFromNPY(R"(E:\VS_Projects\MonoPlanner\example\data\55_mask.npy)", CV_8U);
   cv::Mat normalMap =
-    cvDNN::blobFromNPY(R"(E:\VS_Projects\MonoPlanner\example\data\99_normal.npy)", CV_32F);
+    cvDNN::blobFromNPY(R"(E:\VS_Projects\MonoPlanner\example\data\55_normal.npy)", CV_32F);
   normalMap = zxm::tool::CV_Convert32FTo32FC3(normalMap, mask);
   zxm::tool::DrawNormals("../dbg/inNormals.png", normalMap);
   //

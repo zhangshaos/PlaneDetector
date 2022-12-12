@@ -187,10 +187,10 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
   zxm::ELSEDWrapper elsed;
   lines = elsed.detect(colorImg);
 #endif
-  //排序，保证先处理短线段，再处理长线段
+  //排序，保证先处理长线段，再处理短线段
   std::sort(lines.begin(), lines.end(), [](const std::vector<cv::Point2i> &l,
                                            const std::vector<cv::Point2i> &r)
-                                           { return l.size()<r.size(); });
+                                           { return l.size()>r.size(); });
   //线段检测结果放缩到normalMap大小
   int Rows = colorImg.size[0], Cols = colorImg.size[1];
   float scaleY = 1.f, scaleX = 1.f;
@@ -207,7 +207,7 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
       &v1 = normalMap.at<cv::Vec3f>(iy1, ix1);
     const float angle = acos(zxm::tool::clamp(v0.dot(v1), -1.f, 1.f));
     zxm::tool::CheckMathError();
-    return angle >= float(TH_DIFF_SIDE_ANGLE * CV_PI / 180);
+    return angle > float(TH_DIFF_SIDE_ANGLE * CV_PI / 180);
   };
   //可视化原始的检测结果lines
   cv::Mat edgeResult = enableDebug ?
@@ -247,10 +247,13 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
           isDiffSide(iy0, ix0, iy1, ix1))
         ++nDiffSide;
     }
-    if (nDiffSide >= std::max(size_t(STRUCTURE_LINE_RATIO * l.size()), size_t(1))) {
+    if (nDiffSide > std::max(size_t(STRUCTURE_LINE_RATIO * l.size()), size_t(1))) {
       //如果边缘e上有足够多的像素左右不一致，则表明e是一条结构线而不是纹理线
-      for (const auto &px : l)
-        result.at<int32_t>(px.y, px.x) = startID;
+      for (const auto &px : l) {
+        auto &pxID = result.at<int32_t>(px.y, px.x);
+        if (pxID < 0)
+          pxID = startID;
+      }
       linesResultID[i] = startID;
       ++startID;
     }
@@ -280,20 +283,12 @@ cv::Mat zxm::CreateStructureLinesMap(const cv::Mat &colorImg,
     const auto &startPx = l.front(), &endPx = l.back();
     //LOG_ASSERT(linesResultID[i]==getLineID(startPx));
     //LOG_ASSERT(linesResultID[i]==getLineID(endPx));//result中的线段可能重叠
-    //每条线段向左右扩张，最大不超过图像边缘or长度超过l的一半，
+    //每条线段向左右扩张，最大不超过图像边缘or长度超过l的一倍，
     //如果在扩张过程中，触碰到其他线段，则停止扩张；
     //否则，扩张失败，丢弃扩张结果。
     float
-    deltaY = float(endPx.y - startPx.y) * 0.5f,
-    deltaX = float(endPx.x - startPx.x) * 0.5f;
-    if (deltaY < 0.f)
-      deltaY -= 1.f;
-    else if (deltaY > 0.)
-      deltaY += 1.f;
-    if (deltaX < 0.f)
-      deltaX -= 1.f;
-    else if (deltaX > 0.)
-      deltaX += 1.f;
+    deltaY = float(endPx.y - startPx.y),
+    deltaX = float(endPx.x - startPx.x);
     cv::Point2i startStartPx(int(startPx.x + 0.5f - deltaX),
                              int(startPx.y + 0.5f - deltaY));
     cv::Point2i endEndPx(int(endPx.x + 0.5f + deltaX),
