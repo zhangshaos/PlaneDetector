@@ -154,11 +154,12 @@ void zxm::tool::CheckMathError() {
   std::ostringstream oss;
   if constexpr (math_errhandling | MATH_ERREXCEPT) {
     int err = std::fetestexcept(FE_ALL_EXCEPT);
-    if (err == 0)
-      return;
-    if (err == FE_INEXACT) {
+    if (!(err & FE_INVALID ||
+          err & FE_DIVBYZERO ||
+          err & FE_OVERFLOW)) {
+      //忽略FE_INEXACT精度误差；
+      //忽略FE_UNDERFLOW浮点数下溢误差；
       std::feclearexcept(FE_ALL_EXCEPT);
-      //忽视精度丢失的异常
       return;
     }
     oss << "Math Error:\n";
@@ -168,8 +169,6 @@ void zxm::tool::CheckMathError() {
       oss << "Pole error FE_DIVBYZERO\n";
     if (err & FE_OVERFLOW)
       oss << "Range error due to overflow FE_OVERFLOW\n";
-    if (err & FE_UNDERFLOW)
-      oss << "Range error due to underflow FE_UNDERFLOW\n";
     std::feclearexcept(FE_ALL_EXCEPT);
     throw std::runtime_error(oss.str());
   } else if constexpr (math_errhandling | MATH_ERRNO) {

@@ -55,14 +55,19 @@ std::vector<std::vector<cv::Point2i>>
 zxm::ELSEDWrapper::detect(const cv::Mat &img) {
   std::vector<std::vector<cv::Point2i>> result;
   auto lines = detector_->detect(img);
+  const int64_t
+  Cols = detector_->getImgInfoPtr()->imageWidth,
+  Rows = detector_->getImgInfoPtr()->imageHeight;
   //fixme: ELSED float error.
   std::feclearexcept(FE_ALL_EXCEPT);
   for (const auto &l : lines) {//x0, y0, x1, y1
     const int
-    ix0 = int(l(0) + 0.5f),
-    iy0 = int(l(1) + 0.5f),
-    ix1 = int(l(2) + 0.5f),
-    iy1 = int(l(3) + 0.5f);
+    ix0 = (int)l(0),
+    iy0 = (int)l(1),
+    ix1 = (int)l(2),
+    iy1 = (int)l(3);
+    assert(0<=iy0 && iy0<Rows && 0<=ix0 && ix0<Cols);
+    assert(0<=iy1 && iy1<Rows && 0<=ix1 && ix1<Cols);
     auto lPx = zxm::raster(iy0, ix0, iy1, ix1);
     result.emplace_back(std::move(lPx));
   }
